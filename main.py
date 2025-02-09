@@ -4,30 +4,57 @@ from ToDOItem import Todo
 #The ID needs to be loaded via a settigns file that also holds preivous TODOs most likely JSON FIle
 id = 1
 
+def handle_submit(frame):
+    pass
+def clear_frame(frame):
+    for widget in frame.winfo_children():
+        widget.destroy()
+        
+        frame.pack_forget
+
+
+
 def create_todo():
+    
+    todo_frame = tk.Frame(root)
+    todo_frame.pack(pady=5, padx=10, fill="x")
+    
     title_var = tk.StringVar()
     status_var = tk.StringVar()
     priority_var = tk.StringVar()
     
-    title_label = tk.Label(root, text="Title")
-    title_entry = tk.Entry(root, textvariable=title_var)
+    title_label = tk.Label(todo_frame, text="Title")
+    title_entry = tk.Entry(todo_frame, textvariable=title_var)
     
     #Prob switch this to a dropdown
-    status_label = tk.Label(root, text="Current Status")
-    status_entry = tk.Entry(root, textvariable=status_var)
+    status_label = tk.Label(todo_frame, text="Status:")
+    status_options = ["ToDo", "In Prgrogress", "Completed"]
+    status_var.set(status_options[0])
+    status_dropdown = tk.OptionMenu(todo_frame, status_var, *status_options)
     
     #Switch this to a dropdown as well
-    priority_label = tk.Label(root, text="Priority")
-    priority_entry = tk.Entry(root, textvariable=priority_var)
+    priority_label = tk.Label(todo_frame, text="Priority")
+    priority_options = ["Low", "Medium", "High"]
+    priority_var.set(priority_options[1])
+    priority_entry = tk.OptionMenu(todo_frame, priority_var, *priority_options)
+    
+    submit_button = tk.Button(todo_frame, text="Submit", command=lambda: [handle_submit(todo_frame), clear_frame(todo_frame)])
+    
     
     title_label.grid(row=0, column=0)
     title_entry.grid(row=0, column=1)
-    status_label.grid(row=1, column=1)
-    status_entry.grid(row=1, column=1)
-    priority_label.grid(row=2, column=2)
+
+    status_label.grid(row=1, column=0)
+    status_dropdown.grid(row=1, column=1)
+
+    priority_label.grid(row=2, column=0)
     priority_entry.grid(row=2, column=1)
     
-    #Need to update the main scren byu adding a "Frame" Into this to then update inside of ROot
+    submit_button.grid(row=3, column=0)
+
+    
+    #Add sumbit button that then creates a new todo and displays to the screen ( new frame )
+    #Also unpack? the newly created inputs (using a try catch statement)
 
 
 root = tk.Tk()
