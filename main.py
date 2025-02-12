@@ -2,14 +2,13 @@ import tkinter as tk
 from tkinter import messagebox
 from ToDOItem import Todo
 
-# The ID should persist across todos (use a global counter for now)
 todo_id = 1
 
 def handle_submit(title_var, status_var, priority_var):
-    global todo_id  # Access the global counter
+    global todo_id  
     
-    todo_container = tk.Frame(root)
-    todo_container.pack(pady=60, padx=10, fill="x")
+    todo_container = tk.Frame(root, bd=2, relief="solid", padx=10, pady=5, bg="#f8f9fa")
+    todo_container.pack(pady=10, padx=20, fill="x")
     
     todo_dictionary = {
         "title": title_var.get(),
@@ -19,72 +18,95 @@ def handle_submit(title_var, status_var, priority_var):
     
     if todo_dictionary["title"] == "":
         messagebox.showerror("Error", "You must enter a title!")
+        todo_container.destroy()
         return
-        
-
-
 
     new_todo = Todo(todo_id, todo_dictionary["title"], todo_dictionary["status"], todo_dictionary["priority"])
     todo_id += 1  
 
-    todo_item = tk.Label(todo_container, text=new_todo.title)
-    todo_item.grid(column=0, row=0)
+    tk.Label(todo_container, text=new_todo.title, font=("Arial", 12, "bold"), bg="#f8f9fa").grid(column=0, row=0, padx=5, pady=5, sticky="w")
+    tk.Label(todo_container, text=f"Status: {new_todo.status}", font=("Arial", 10), bg="#f8f9fa").grid(column=1, row=0, padx=5, pady=5)
+    tk.Label(todo_container, text=f"Priority: {new_todo.priority}", font=("Arial", 10), bg="#f8f9fa").grid(column=2, row=0, padx=5, pady=5)
+    
+    delete_button = tk.Button(todo_container, text='Remove', command=lambda: (todo_container.destroy(), delete_todo(new_todo)), bg="#ff6b6b", fg="white", font=("Arial", 10, "bold"))
+    edit_button = tk.Button(todo_container, text='Edit', command=lambda: edit_todo(new_todo, todo_container), bg="#4caf50", fg="white", font=("Arial", 10, "bold"))
+    
+    delete_button.grid(column=3, row=0, padx=5, pady=5)
+    edit_button.grid(column=4, row=0, padx=5, pady=5)
 
-    print(new_todo.title) 
+def edit_todo(todo, todo_container):
+    editPopup = tk.Toplevel(root)
+    editPopup.title("Edit Todo")
+    editPopup.geometry("300x200")
+    editPopup.configure(bg="#f8f9fa")
+    
+    title_var = tk.StringVar(value=todo.title)
+    status_var = tk.StringVar(value=todo.status)
+    priority_var = tk.StringVar(value=todo.priority)
+    
+    tk.Label(editPopup, text="Title", bg="#f8f9fa").pack(pady=5)
+    title_entry = tk.Entry(editPopup, textvariable=title_var)
+    title_entry.pack(pady=5)
 
-def clear_frame(frame):
-    for widget in frame.winfo_children():
-        widget.destroy()
-    frame.pack_forget()
+    tk.Label(editPopup, text="Status", bg="#f8f9fa").pack(pady=5)
+    status_options = ["ToDo", "In Progress", "Completed"]
+    status_dropdown = tk.OptionMenu(editPopup, status_var, *status_options)
+    status_dropdown.pack(pady=5)
 
+    tk.Label(editPopup, text="Priority", bg="#f8f9fa").pack(pady=5)
+    priority_options = ["Low", "Medium", "High"]
+    priority_dropdown = tk.OptionMenu(editPopup, priority_var, *priority_options)
+    priority_dropdown.pack(pady=5)
+    
+    def saveChanges():
+        todo.title = title_var.get()
+        todo.status = status_var.get()
+        todo.priority = priority_var.get()
+
+        for widget in todo_container.winfo_children():
+            widget.destroy()
+
+        tk.Label(todo_container, text=todo.title, font=("Arial", 12, "bold"), bg="#f8f9fa").grid(column=0, row=0, padx=5, pady=5, sticky="w")
+        tk.Label(todo_container, text=f"Status: {todo.status}", font=("Arial", 10), bg="#f8f9fa").grid(column=1, row=0, padx=5, pady=5)
+        tk.Label(todo_container, text=f"Priority: {todo.priority}", font=("Arial", 10), bg="#f8f9fa").grid(column=2, row=0, padx=5, pady=5)
+
+        delete_button = tk.Button(todo_container, text='Remove', command=lambda: (todo_container.destroy(), delete_todo(todo)), bg="#ff6b6b", fg="white", font=("Arial", 10, "bold"))
+        edit_button = tk.Button(todo_container, text='Edit', command=lambda: edit_todo(todo, todo_container), bg="#4caf50", fg="white", font=("Arial", 10, "bold"))
+        
+        delete_button.grid(column=3, row=0, padx=5, pady=5)
+        edit_button.grid(column=4, row=0, padx=5, pady=5)
+        
+        editPopup.destroy()
+    
+    confirm_button = tk.Button(editPopup, text="Confirm", command=saveChanges, bg="#4caf50", fg="white")
+    confirm_button.pack(pady=10)
+
+def delete_todo(todo):
+    del todo
 
 def create_todo():
-    todo_frame = tk.Frame(root)
-    todo_frame.pack(pady=5, padx=10, fill="x")
-
-    # Use StringVar() to track input values
+    todo_frame = tk.Frame(root, bd=2, relief="ridge", padx=10, pady=10)
+    todo_frame.pack(pady=10, padx=20, fill="x")
+    
     title_var = tk.StringVar()
-    status_var = tk.StringVar()
-    priority_var = tk.StringVar()
+    status_var = tk.StringVar(value="ToDo")
+    priority_var = tk.StringVar(value="Medium")
+    
+    tk.Label(todo_frame, text="Title:", font=("Arial", 12, "bold")).grid(row=0, column=0, padx=5, pady=5, sticky="w")
+    tk.Entry(todo_frame, textvariable=title_var, width=30).grid(row=0, column=1, padx=5, pady=5)
 
-    title_label = tk.Label(todo_frame, text="Title")
-    title_entry = tk.Entry(todo_frame, textvariable=title_var)
+    tk.Label(todo_frame, text="Status:", font=("Arial", 12, "bold")).grid(row=1, column=0, padx=5, pady=5, sticky="w")
+    tk.OptionMenu(todo_frame, status_var, "ToDo", "In Progress", "Completed").grid(row=1, column=1, padx=5, pady=5)
 
-    # Status dropdown
-    status_label = tk.Label(todo_frame, text="Status:")
-    status_options = ["ToDo", "In Progress", "Completed"]
-    status_var.set(status_options[0])
-    status_dropdown = tk.OptionMenu(todo_frame, status_var, *status_options)
+    tk.Label(todo_frame, text="Priority:", font=("Arial", 12, "bold")).grid(row=2, column=0, padx=5, pady=5, sticky="w")
+    tk.OptionMenu(todo_frame, priority_var, "Low", "Medium", "High").grid(row=2, column=1, padx=5, pady=5)
+    
+    tk.Button(todo_frame, text="Submit", command=lambda: (handle_submit(title_var, status_var, priority_var), todo_frame.destroy()), bg="#2196F3", fg="white", font=("Arial", 10, "bold")).grid(row=3, column=0, columnspan=2, pady=10)
 
-    # Priority dropdown
-    priority_label = tk.Label(todo_frame, text="Priority")
-    priority_options = ["Low", "Medium", "High"]
-    priority_var.set(priority_options[1])
-    priority_dropdown = tk.OptionMenu(todo_frame, priority_var, *priority_options)
-
-    # Submit button now passes references to StringVars
-    submit_button = tk.Button(todo_frame, text="Submit", command=lambda: (handle_submit(title_var, status_var, priority_var), clear_frame(todo_frame))
-    )
-
-    # Layout
-    title_label.grid(row=0, column=0)
-    title_entry.grid(row=0, column=1)
-
-    status_label.grid(row=1, column=0)
-    status_dropdown.grid(row=1, column=1)
-
-    priority_label.grid(row=2, column=0)
-    priority_dropdown.grid(row=2, column=1)
-
-    submit_button.grid(row=3, column=0, columnspan=2, pady=5)
-
-
-# Main Window
 root = tk.Tk()
 root.title("Your ToDos!")
-root.geometry("1280x960")
-root.resizable(False, False)
-create_todo_button = tk.Button(root, text="Create Todo", command=create_todo)
+root.geometry("600x600")
+root.configure(bg="#e9ecef")
+create_todo_button = tk.Button(root, text="Create Todo", command=create_todo, bg="#2196F3", fg="white", font=("Arial", 12, "bold"))
 create_todo_button.pack(padx=20, pady=20)
-
 root.mainloop()
