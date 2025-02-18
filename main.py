@@ -1,6 +1,19 @@
 import tkinter as tk
 from tkinter import messagebox
 from ToDOItem import Todo
+import sqlite3
+
+'''
+TODO: 
+ - ADD DATES
+ - ADD DUE DATES
+ - UPDATE / DELETE TODOs IN THE TABLE
+ - PERSISTANCE ACORSS SESSIONS (UI)
+ - DESKTOP NOTIFICATIONS
+ - POINT SYSTEM?
+'''
+
+
 
 todo_id = 1
 
@@ -24,6 +37,7 @@ def handle_submit(title_var, status_var, priority_var):
     new_todo = Todo(todo_id, todo_dictionary["title"], todo_dictionary["status"], todo_dictionary["priority"])
     todo_id += 1  
 
+    add_task_to_db(new_todo)
     tk.Label(todo_container, text=new_todo.title, font=("Arial", 12, "bold"), bg="#f8f9fa").grid(column=0, row=0, padx=5, pady=5, sticky="w")
     tk.Label(todo_container, text=f"Status: {new_todo.status}", font=("Arial", 10), bg="#f8f9fa").grid(column=1, row=0, padx=5, pady=5)
     tk.Label(todo_container, text=f"Priority: {new_todo.priority}", font=("Arial", 10), bg="#f8f9fa").grid(column=2, row=0, padx=5, pady=5)
@@ -33,6 +47,19 @@ def handle_submit(title_var, status_var, priority_var):
     
     delete_button.grid(column=3, row=0, padx=5, pady=5)
     edit_button.grid(column=4, row=0, padx=5, pady=5)
+
+def add_task_to_db(todo_item):
+    t.execute("INSERT INTO tasks (title, priority, status) VALUES (?, ? , ?)", (todo_item.title, todo_item.priority, todo_item.status))
+    table.commit()
+    
+    data = t.execute('''SELECT * FROM tasks''')
+    for row in data:
+        print(row)
+
+def drop_table(cursor):
+    # DROP THE TABLE FOR TESTING PURPOSES
+    cursor.execute("DROP TABLE IF EXISTS tasks")
+
 
 def edit_todo(todo, todo_container):
     editPopup = tk.Toplevel(root)
@@ -102,6 +129,12 @@ def create_todo():
     tk.OptionMenu(todo_frame, priority_var, "Low", "Medium", "High").grid(row=2, column=1, padx=5, pady=5)
     
     tk.Button(todo_frame, text="Submit", command=lambda: (handle_submit(title_var, status_var, priority_var), todo_frame.destroy()), bg="#2196F3", fg="white", font=("Arial", 10, "bold")).grid(row=3, column=0, columnspan=2, pady=10)
+
+
+table = sqlite3.connect('todo.db')
+t = table.cursor()
+drop_table(t)
+t.execute('''CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, title TEXT, priority TEXT, status TEXT)''')
 
 root = tk.Tk()
 root.title("Your ToDos!")
