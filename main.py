@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 from ToDOItem import Todo
 import sqlite3
-import datetime
+from datetime import datetime
 from tkcalendar import Calendar
 
 '''
@@ -27,11 +27,16 @@ def handle_submit(title_var, status_var, priority_var, date_var):
     todo_container = tk.Frame(root, bd=2, relief="solid", padx=10, pady=5, bg="#f8f9fa")
     todo_container.pack(pady=10, padx=20, fill="x")
     
+    formatted_date = datetime.strptime(date_var, "%m/%d/%y").strftime("%Y-%m-%d")
+    
+    
+    
+    
     todo_dictionary = {
         "title": title_var.get(),
         "status": status_var.get(),
         "priority": priority_var.get(),
-        "date": date_var
+        "date": formatted_date
     }
     
     print(f"THIS IS THE DATE: {date_var}")
@@ -41,25 +46,25 @@ def handle_submit(title_var, status_var, priority_var, date_var):
         todo_container.destroy()
         return
 
-    new_todo = Todo(todo_id, todo_dictionary["title"], todo_dictionary["status"], todo_dictionary["priority"])
+    new_todo = Todo(todo_id, todo_dictionary["title"], todo_dictionary["status"], todo_dictionary["priority"], todo_dictionary["date"])
     todo_id += 1  
 
     add_task_to_db(new_todo)
     tk.Label(todo_container, text=new_todo.title, font=("Arial", 12, "bold"), bg="#f8f9fa").grid(column=0, row=0, padx=5, pady=5, sticky="w")
     tk.Label(todo_container, text=f"Status: {new_todo.status}", font=("Arial", 10), bg="#f8f9fa").grid(column=1, row=0, padx=5, pady=5)
     tk.Label(todo_container, text=f"Priority: {new_todo.priority}", font=("Arial", 10), bg="#f8f9fa").grid(column=2, row=0, padx=5, pady=5)
-    #tk.Label(todo_container, text=f"Date: {todo_dictionary.date}", font=("Arial", 10), bg="#f8f9fa").grid(column=3, row=0, padx=5, pady=5)
+    tk.Label(todo_container, text=f"Date: {new_todo.due_date}", font=("Arial", 10), bg="#f8f9fa").grid(column=3, row=0, padx=5, pady=5)
     
     delete_button = tk.Button(todo_container, text='Remove', command=lambda: (todo_container.destroy(), delete_todo(new_todo)), bg="#ff6b6b", fg="white", font=("Arial", 10, "bold"))
     edit_button = tk.Button(todo_container, text='Edit', command=lambda: edit_todo(new_todo, todo_container), bg="#4caf50", fg="white", font=("Arial", 10, "bold"))
     
-    delete_button.grid(column=3, row=0, padx=5, pady=5)
-    edit_button.grid(column=4, row=0, padx=5, pady=5)
+    delete_button.grid(column=4, row=0, padx=5, pady=5)
+    edit_button.grid(column=5, row=0, padx=5, pady=5)
 
 def add_task_to_db(todo_item):
     global db_cursor
     
-    db_cursor.execute("INSERT INTO tasks (title, priority, status) VALUES (?, ? , ?)", (todo_item.title, todo_item.priority, todo_item.status))
+    db_cursor.execute("INSERT INTO tasks (title, priority, status, due_date) VALUES (?, ? , ?, ?)", (todo_item.title, todo_item.priority, todo_item.status, todo_item.due_date))
     
     
     data = db_cursor.execute('''SELECT * FROM tasks''')
@@ -150,6 +155,7 @@ def create_todo():
     calendar = Calendar(todo_frame, selectmode = 'day', year = 2025, month = 1, day = 20)
     calendar.grid(row=3, column=1,padx=5, pady=5)
     
+    
     tk.Button(todo_frame, text="Submit", command=lambda: (handle_submit(title_var, status_var, priority_var, calendar.get_date()), todo_frame.destroy()), bg="#2196F3", fg="white", font=("Arial", 10, "bold")).grid(row=4, column=0, columnspan=2, pady=10)
 
 def init_table():
@@ -157,7 +163,7 @@ def init_table():
     db_conn = sqlite3.connect('todo.db')
     db_cursor = db_conn.cursor()
     db_cursor.execute('DROP TABLE IF EXISTS tasks')  # Remove this after testing
-    db_cursor.execute('''CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, title TEXT, priority TEXT, status TEXT)''')
+    db_cursor.execute('''CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, title TEXT, priority TEXT, status TEXT, due_date TEXT)''')
 
 def main():
     global root
