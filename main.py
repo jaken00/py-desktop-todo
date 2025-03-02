@@ -4,12 +4,12 @@ from ToDOItem import Todo
 import sqlite3
 from datetime import datetime
 from tkcalendar import Calendar
+from datetime import date
+
+
 
 '''
 TODO: 
- - ADD DATES
- - ADD DUE DATES
- - UPDATE / DELETE TODOs IN THE TABLE
  - PERSISTANCE ACORSS SESSIONS (UI)
  - DESKTOP NOTIFICATIONS
  - POINT SYSTEM?
@@ -20,6 +20,46 @@ TODO:
 todo_id = 1
 db_conn = None    # DIRECT DB CONNECTION
 db_cursor = None  # THE CURSOR
+
+def sanitize_previous_todo(title, status, priority, date):
+    global todo_id  # Use the global todo_id
+    
+    
+    
+    todo_dictionary = {
+        "title": title,
+        "status": status,
+        "priority": priority,
+        "date": date
+    }
+    
+    new_todo = Todo(todo_id, todo_dictionary["title"], todo_dictionary["status"], todo_dictionary["priority"], todo_dictionary["date"])
+    todo_id += 1  
+
+    todo_container = tk.Frame(root, bd=2, relief="solid", padx=10, pady=5, bg="#f8f9fa")
+    todo_container.pack(pady=10, padx=20, fill="x")
+
+    tk.Label(todo_container, text=new_todo.title, font=("Arial", 12, "bold"), bg="#f8f9fa").grid(column=0, row=0, padx=5, pady=5, sticky="w")
+    tk.Label(todo_container, text=f"Status: {new_todo.status}", font=("Arial", 10), bg="#f8f9fa").grid(column=1, row=0, padx=5, pady=5)
+    tk.Label(todo_container, text=f"Priority: {new_todo.priority}", font=("Arial", 10), bg="#f8f9fa").grid(column=2, row=0, padx=5, pady=5)
+    tk.Label(todo_container, text=f"Date: {new_todo.due_date}", font=("Arial", 10), bg="#f8f9fa").grid(column=3, row=0, padx=5, pady=5)
+
+    delete_button = tk.Button(todo_container, text='Remove', command=lambda: (todo_container.destroy(), delete_todo(new_todo)), bg="#ff6b6b", fg="white", font=("Arial", 10, "bold"))
+    edit_button = tk.Button(todo_container, text='Edit', command=lambda: edit_todo(new_todo, todo_container), bg="#4caf50", fg="white", font=("Arial", 10, "bold"))
+
+    delete_button.grid(column=4, row=0, padx=5, pady=5)
+    edit_button.grid(column=5, row=0, padx=5, pady=5)
+
+def display_previous_todo():
+    previous_todo_touple = get_from_db()
+    
+    for todo in previous_todo_touple:
+        title = todo[1]
+        priority = todo[2]
+        status = todo[3]
+        due_date = todo[4]
+
+        sanitize_previous_todo(title, status, priority, due_date)  
 
 def handle_submit(title_var, status_var, priority_var, date_var):
     global todo_id  
@@ -49,6 +89,8 @@ def handle_submit(title_var, status_var, priority_var, date_var):
     new_todo = Todo(todo_id, todo_dictionary["title"], todo_dictionary["status"], todo_dictionary["priority"], todo_dictionary["date"])
     todo_id += 1  
 
+    
+    
     add_task_to_db(new_todo)
     tk.Label(todo_container, text=new_todo.title, font=("Arial", 12, "bold"), bg="#f8f9fa").grid(column=0, row=0, padx=5, pady=5, sticky="w")
     tk.Label(todo_container, text=f"Status: {new_todo.status}", font=("Arial", 10), bg="#f8f9fa").grid(column=1, row=0, padx=5, pady=5)
@@ -64,13 +106,20 @@ def handle_submit(title_var, status_var, priority_var, date_var):
 def add_task_to_db(todo_item):
     global db_cursor
     
-    db_cursor.execute("INSERT INTO tasks (title, priority, status, due_date) VALUES (?, ? , ?, ?)", (todo_item.title, todo_item.priority, todo_item.status, todo_item.due_date))
+    db_cursor.execute("INSERT INTO tasks (title, priority, status, due_date, complete_date) VALUES (?, ? , ?, ?, ?)", (todo_item.title, todo_item.priority, todo_item.status, todo_item.due_date, None))
     
     
     data = db_cursor.execute('''SELECT * FROM tasks''')
     commit_table()
     for row in data:
         print(row)
+
+def get_from_db():
+    global db_cursor
+    
+    return db_cursor.execute('''SELECT * FROM tasks WHERE complete_date IS NULL''').fetchall()
+    
+
 
 def drop_table(cursor):
     # DROP THE TABLE FOR TESTING PURPOSES
@@ -104,14 +153,31 @@ def edit_todo(todo, todo_container):
     priority_options = ["Low", "Medium", "High"]
     priority_dropdown = tk.OptionMenu(editPopup, priority_var, *priority_options)
     priority_dropdown.pack(pady=5)
-    
+        
     def saveChanges():
         todo.title = title_var.get()
         todo.status = status_var.get()
         todo.priority = priority_var.get()
+        
+        current_date = date.today()
 
         for widget in todo_container.winfo_children():
             widget.destroy()
+
+        if todo.priority == "Completed":
+            db_cursor.execute('''
+            UPDATE tasks
+            SET title = ?, priority = ?, status = ?, complete_date = ?
+            WHERE id = ?
+                              ''', (todo.title, todo.priority, todo.status, current_date, todo.id))
+            db_conn.commit()
+        else:
+            db_cursor.execute('''
+            UPDATE tasks
+            SET title = ?, priority = ?, status = ?
+            WHERE id = ?
+                              ''', (todo.title, todo.priority, todo.status, todo.id))
+            db_conn.commit()
 
         tk.Label(todo_container, text=todo.title, font=("Arial", 12, "bold"), bg="#f8f9fa").grid(column=0, row=0, padx=5, pady=5, sticky="w")
         tk.Label(todo_container, text=f"Status: {todo.status}", font=("Arial", 10), bg="#f8f9fa").grid(column=1, row=0, padx=5, pady=5)
@@ -162,8 +228,8 @@ def init_table():
     global db_conn, db_cursor
     db_conn = sqlite3.connect('todo.db')
     db_cursor = db_conn.cursor()
-    db_cursor.execute('DROP TABLE IF EXISTS tasks')  # Remove this after testing
-    db_cursor.execute('''CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, title TEXT, priority TEXT, status TEXT, due_date TEXT)''')
+    #db_cursor.execute('DROP TABLE IF EXISTS tasks')  # Remove this after testing
+    db_cursor.execute('''CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, title TEXT, priority TEXT, status TEXT, due_date TEXT, complete_date TEXT)''')
 
 def main():
     global root
@@ -173,7 +239,8 @@ def main():
     root.title("Your ToDos!")
     root.geometry("600x600")
     root.configure(bg="#e9ecef")
-
+    
+    display_previous_todo()
     create_todo_button = tk.Button(root, text="Create Todo", command=create_todo, bg="#2196F3", fg="white", font=("Arial", 12, "bold"))
     create_todo_button.pack(padx=20, pady=20)
 
